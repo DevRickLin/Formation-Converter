@@ -4,8 +4,14 @@ const yargs = require("yargs");
 
 const options = yargs
     .usage("usage")
-    .option("f", 
-        { alias: "file", describe: "需要修复的目标文件", type: "string", demandOption: false })
+    .option("t", 
+        { alias: "target", describe: "target file(json format)", type: "string", demandOption: true })
+    .option("f",
+        { alias: "format", describe: "output format", type: "string", default: "json", demandOption: false}
+    )
+    .option("o",
+        { alias: "output", describe: "output file (default is the origin file)", type: "string", demandOption: false}
+    )
     .help(true)
     .argv;
 
@@ -29,21 +35,54 @@ function fixRoleTypeOfFormation(formation) {
                 throw Error(`[ERR] no match type of ${line['name']}`);
         }
     }
-    return JSON.stringify(result, null, 4);
+    return result;
+}
+
+function json2v3(formation) {
+    let result = "";
+    result += `Formation ${formation['method']} 2\n`;
+    result += "Begin Roles\n";
+    formation['role'].forEach((role,idx)=>{
+        result += `${role.number} ${role.name} ${role.pair < role.number ? role.pair : '-1'}\n`
+    });
+    result += "End Roles\n";
+    result += `Begin Samples 2 ${formation['data'].length}\n`;
+    formation['data'].forEach(
+        (data,idx) => {
+            result += `----- ${idx} -----\n`;
+            result += `Ball ${data.ball.x} ${data.ball.y}\n`;
+            for(const unum of Array(11).keys()) {
+                const { x, y } = data[`${unum + 1}`]; 
+                result += `${unum + 1} ${x} ${y}\n`;
+            }
+        }
+    )
+    result += "End Samples\n";
+    result += "End";
+    return result;
+}
+
+function convert(format,formation) {
+    switch(format) {
+        case 'v3':
+            return json2v3(formation);
+        case 'json':
+            return JSON.stringify(formation, null, 4);
+        default:
+            break;
+    }
 }
 
 async function main() {
 
-const targetFileName = options.file;
-
-if(!targetFileName) {
-    console.log(`[ERR] please specify target formation file`);
-    return;
-}
+const targetFileName = options['target'];
 
 const formation = await fs.readFile(targetFileName, 'utf-8');
+
+const fixed = fixRoleTypeOfFormation(formation);
+
 try{
-    fs.writeFile(targetFileName,fixRoleTypeOfFormation(formation));
+    fs.writeFile(options['output'] || targetFileName,convert(options['format'],fixed));
 }catch(err){
     console.log(err);
 }
