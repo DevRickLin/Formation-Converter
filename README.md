@@ -1,4 +1,4 @@
-# Robocup Formation fixer
+# Robocup Formation 
 
 If your RoboCup team is using the `v3` format of formation configuration files, when you open a file with the newest `fedit2` and save it, it will become `json` format and the `type` of your player role will all be set to `Unknow` just like:
 
